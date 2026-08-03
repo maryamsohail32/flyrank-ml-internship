@@ -1,0 +1,18 @@
+{
+  "date_generated": "2026-08-02",
+  "feature_window": "2026-02-01 to 2026-03-31",
+  "target_window": "2026-04-01 to 2026-04-30",
+  "n_labeled_pages": 187778,
+  "n_train_clients": 35,
+  "n_test_clients": 12,
+  "base_rate": 0.452,
+  "baseline_precision_at_50": 0.26,
+  "logreg_precision_at_50": 0.68,
+  "rf_precision_at_50": 0.76,
+  "leaky_stress_test_precision_at_50": 1.0,
+  "action_mix": {
+    "monitor": 0.888,
+    "rewrite_title_meta": 0.077,
+    "protect_monitor": 0.035
+  }
+}
