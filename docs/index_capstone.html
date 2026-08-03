@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refresh &amp; Content Opportunity Scoring — FlyRank ML Internship Capstone</title>
+<style>
+  :root{
+    --paper:#EDEFEE;
+    --ink:#151B1E;
+    --ink-soft:#3E484D;
+    --rule:#CBD1CE;
+    --signal:#2F6F6B;      /* teal - confirmed / observed */
+    --signal-soft:#E4EEEC;
+    --caution:#B8860B;     /* ochre - directional / caution */
+    --caution-soft:#F5EEDC;
+    --risk:#9C4221;        /* clay-red - decision-support / not claimed */
+    --risk-soft:#F3E4DD;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display: 'Fraunces', Georgia, serif;
+    --body: 'Inter', -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--body); line-height:1.65; font-size:17px;
+  }
+  a{color:var(--signal);}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px;}
+
+  /* ---- nav rail ---- */
+  nav.rail{
+    position:fixed; top:0; left:0; height:100vh; width:190px;
+    padding:40px 0 40px 28px; border-right:1px solid var(--rule);
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.02em;
+    display:none;
+  }
+  nav.rail a{
+    display:block; color:var(--ink-soft); text-decoration:none;
+    padding:6px 0; border-left:2px solid transparent; padding-left:10px;
+  }
+  nav.rail a:hover{border-left-color:var(--signal); color:var(--ink);}
+  @media(min-width:1180px){
+    nav.rail{display:block;}
+    .wrap{margin-left:220px;}
+  }
+
+  /* ---- hero ---- */
+  header.hero{
+    padding:90px 0 50px; border-bottom:1px solid var(--rule);
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:12.5px; text-transform:uppercase;
+    letter-spacing:.12em; color:var(--signal); margin-bottom:22px;
+  }
+  h1{
+    font-family:var(--display); font-weight:600; font-size:44px;
+    line-height:1.12; margin:0 0 20px; letter-spacing:-.01em;
+  }
+  .dek{font-size:19px; color:var(--ink-soft); max-width:600px; margin:0 0 28px;}
+  .meta-row{
+    display:flex; gap:24px; flex-wrap:wrap; font-family:var(--mono);
+    font-size:12.5px; color:var(--ink-soft); padding-top:22px; border-top:1px solid var(--rule);
+  }
+  .meta-row span b{color:var(--ink); font-weight:600;}
+
+  /* ---- headline number strip (the signature element) ---- */
+  .signal-strip{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:var(--rule); border:1px solid var(--rule); margin:36px 0 0;
+  }
+  .signal-cell{background:var(--paper); padding:20px 16px;}
+  .signal-cell .num{font-family:var(--display); font-size:30px; font-weight:600;}
+  .signal-cell .lbl{font-family:var(--mono); font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; margin-top:4px;}
+  .signal-cell.win .num{color:var(--signal);}
+  .signal-cell.warn .num{color:var(--caution);}
+
+  section{padding:64px 0; border-bottom:1px solid var(--rule);}
+  section:last-of-type{border-bottom:none;}
+  .sec-num{
+    font-family:var(--mono); font-size:12.5px; color:var(--ink-soft);
+    letter-spacing:.08em; margin-bottom:10px;
+  }
+  h2{
+    font-family:var(--display); font-size:28px; font-weight:600;
+    margin:0 0 24px; letter-spacing:-.005em;
+  }
+  h3{font-family:var(--body); font-size:16px; font-weight:700; margin:28px 0 10px;}
+  p{margin:0 0 16px;}
+  ul, ol{margin:0 0 16px; padding-left:22px;}
+  li{margin-bottom:8px;}
+  code{font-family:var(--mono); font-size:.92em; background:#e2e5e2; padding:1px 5px; border-radius:3px;}
+
+  /* ---- evidence tags ---- */
+  .tag{
+    display:inline-flex; align-items:center; font-family:var(--mono);
+    font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+    padding:2px 8px; border-radius:3px; margin-left:6px; white-space:nowrap;
+    position:relative; top:-1px;
+  }
+  .tag.observed{background:var(--signal-soft); color:var(--signal);}
+  .tag.directional{background:var(--caution-soft); color:var(--caution);}
+  .tag.decision-support{background:var(--risk-soft); color:var(--risk);}
+  .tag.not-claimed{background:#e2e5e2; color:var(--ink-soft);}
+
+  .legend{
+    display:flex; flex-wrap:wrap; gap:10px 18px; font-size:13px;
+    color:var(--ink-soft); background:#e2e5e2; border-radius:4px;
+    padding:14px 18px; margin:0 0 32px;
+  }
+  .legend b{color:var(--ink);}
+
+  /* ---- tables ---- */
+  table{width:100%; border-collapse:collapse; font-size:14.5px; margin:12px 0 20px;}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--rule);}
+  th{font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); font-weight:600;}
+  tr.hl td{font-weight:700; color:var(--signal);}
+  td.num{font-family:var(--mono);}
+
+  /* ---- bars (results viz, no external image dependency) ---- */
+  .barchart{margin:24px 0 8px;}
+  .bar-row{display:grid; grid-template-columns:160px 1fr 56px; align-items:center; gap:12px; margin-bottom:10px;}
+  .bar-label{font-family:var(--mono); font-size:12.5px; color:var(--ink-soft);}
+  .bar-track{background:#dfe3e0; height:20px; border-radius:2px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--ink-soft);}
+  .bar-fill.win{background:var(--signal);}
+  .bar-fill.warn{background:var(--caution);}
+  .bar-val{font-family:var(--mono); font-size:13px; text-align:right;}
+
+  figure{margin:24px 0;}
+  figure img{width:100%; border:1px solid var(--rule); border-radius:3px; display:block;}
+  figcaption{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-top:8px;}
+
+  .callout{
+    border-left:3px solid var(--caution); background:var(--caution-soft);
+    padding:14px 18px; border-radius:0 3px 3px 0; margin:20px 0; font-size:15.5px;
+  }
+  .callout.risk{border-left-color:var(--risk); background:var(--risk-soft);}
+  .callout b{display:block; font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;}
+
+  footer{padding:56px 0 90px; font-size:14px; color:var(--ink-soft);}
+  footer a{color:var(--ink);}
+
+  @media(max-width:640px){
+    h1{font-size:32px;}
+    .signal-strip{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<nav class="rail">
+  <a href="#abstract">01 · Abstract</a>
+  <a href="#intro">02 · Introduction</a>
+  <a href="#data">03 · Data</a>
+  <a href="#method">04 · Methodology</a>
+  <a href="#results">05 · Results</a>
+  <a href="#limits">06 · Limitations</a>
+  <a href="#recs">07 · Recommendations</a>
+  <a href="#repro">08 · Reproducibility</a>
+  <a href="#ack">09 · Acknowledgments</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">FlyRank ML Internship · Lane 2 · Capstone Research Paper</div>
+  <h1>Which pages should a reviewer touch first, before they decline?</h1>
+  <p class="dek">A future-observed prediction model for refresh and content-opportunity scoring, built and honestly validated on real search performance data — not a proxy label, not a hand-tuned rule.</p>
+  <div class="meta-row">
+    <span>Author: <b>Maryam Sohail Ahmed</b></span>
+    <span>Track: <b>Machine Learning — Lane 2</b></span>
+    <span>Repo: <b>flyrank-ml-internship</b></span>
+  </div>
+
+  <div class="signal-strip">
+    <div class="signal-cell win"><div class="num">0.76</div><div class="lbl">RF Precision@50</div></div>
+    <div class="signal-cell"><div class="num">0.452</div><div class="lbl">Base rate</div></div>
+    <div class="signal-cell warn"><div class="num">0.26</div><div class="lbl">Rule baseline</div></div>
+    <div class="signal-cell"><div class="num">187,778</div><div class="lbl">Labeled pages</div></div>
+  </div>
+</header>
+
+<section id="abstract">
+  <div class="sec-num">01</div>
+  <h2>Abstract</h2>
+  <p>Content teams cannot manually review every page every week, so this work asks a narrow, decision-shaped question: given a fixed weekly review capacity, which pages should be prioritized for refresh, expansion, or protection? Using 60 days of prior performance history (Feb–Mar 2026) to predict what actually happened in the following 30 days (April 2026) — a genuine future outcome, not a same-window proxy — a Random Forest classifier reached 0.76 Precision@50, beating both a hand-written baseline rule (0.26, which scored below random) and Logistic Regression (0.68). The model's ranked output feeds a reason-coded action queue for human review. Every claim below is scoped to pages that already had measurable search visibility going into April, and the paper names six concrete limitations rather than smoothing over them.</p>
+</section>
+
+<section id="intro">
+  <div class="sec-num">02</div>
+  <h2>Introduction &amp; problem statement</h2>
+  <p>The decision this work supports: an SEO or content strategist deciding where to spend limited review time first, out of a large page inventory, this week. The unit of analysis is one content page — a <code>content_id × client_id</code> pair — scored using 60 days of prior history and labeled by what was actually observed in the following 30 days.</p>
+  <p>Every earlier notebook in this internship (ML‑02 through ML‑10) used the starter dataset's <code>is_declining_label</code> — a proxy computed from the same window it was predicting, not an observed future outcome. This capstone's central methodological upgrade <span class="tag observed">Observed</span> is replacing that proxy with a label built from data the model never sees at prediction time: features come strictly from February–March, and the label comes strictly from April.</p>
+</section>
+
+<section id="data">
+  <div class="sec-num">03</div>
+  <h2>Data</h2>
+  <p>Release: <code>FlyRank/internship-warehouse</code> (Hugging Face, gated, build v20260703). Table: <code>fact_content_daily_performance</code>, partitioned by month.</p>
+  <table>
+    <tr><th>Window</th><th>Range</th><th>Rows</th><th>Role</th></tr>
+    <tr><td>Feature window</td><td class="num">2026‑02‑01 → 2026‑03‑31</td><td class="num">7,355,108 + 9,841,378</td><td>60 days of history → 349,411 pages</td></tr>
+    <tr><td>Target window</td><td class="num">2026‑04‑01 → 2026‑04‑30</td><td class="num">10,424,730</td><td>30 days of outcome → 362,172 pages</td></tr>
+  </table>
+  <p>Joining both windows (inner join — a page needs history <em>and</em> an observed outcome to be labeled) yields 331,436 pages. Of those, only 187,778 (56.7%) had any impressions in the feature window and therefore get a computable percent-change label — the rest are excluded by design, not by bug, since "percent change from zero" isn't a meaningful number. <span class="tag decision-support">Decision-support</span> Base rate on the resulting labeled set: 0.527.</p>
+  <p><strong>Label definition:</strong> <code>is_declining = 1</code> when the April daily impression rate is more than 10% lower than the Feb–Mar daily rate — matching the FlyRank research paper's own "Down: &gt;10% decline" definition. Rates (not raw totals) are compared because the two windows are different lengths (59 vs. 30 days).</p>
+  <p>Public-safe note: no client names, domains, URLs, private queries, or credentials appear anywhere in this paper or the underlying notebooks.</p>
+</section>
+
+<section id="method">
+  <div class="sec-num">04</div>
+  <h2>Methodology</h2>
+  <h3>Validation design</h3>
+  <p>Split by <code>client_id</code> (GroupShuffleSplit, 75/25), not by row — 35 training clients, 12 test clients, zero overlap confirmed. This prevents the model from simply memorizing a client's typical performance level, which produced an 8-point score inflation in an earlier notebook when a row-level split was tested instead.</p>
+  <h3>Baseline</h3>
+  <p>The same rule-based baseline used since ML‑07 (a "low visibility days" + "low CTR for position" flag), rebuilt on this table's actual fields. Its CTR benchmark by position bucket is computed on the training split only, to avoid leaking test information into the rule itself.</p>
+  <h3>Features</h3>
+  <p>Six numeric features, all computed strictly within the Feb–Mar window: days with any tracked activity, total impressions, total clicks, average search position, session count, and click-through rate — plus missingness flags for each.</p>
+  <h3>Leakage audit</h3>
+  <p>Per FlyRank's leakage-hunting checklist, the validation harness was stress-tested by deliberately injecting a column derived directly from the label. Precision@50 jumped from 0.76 to 1.0 <span class="tag observed">Observed</span> — confirming the harness correctly detects leakage when it's present, and by extension, that the real (non-leaky) result below is not an artifact of a broken test.</p>
+</section>
+
+<section id="results">
+  <div class="sec-num">05</div>
+  <h2>Results</h2>
+  <p>All four methods evaluated on the identical held-out client split:</p>
+
+  <div class="barchart">
+    <div class="bar-row"><div class="bar-label">Base rate (random)</div><div class="bar-track"><div class="bar-fill" style="width:45.2%"></div></div><div class="bar-val">0.452</div></div>
+    <div class="bar-row"><div class="bar-label">Baseline rule</div><div class="bar-track"><div class="bar-fill warn" style="width:26%"></div></div><div class="bar-val">0.260</div></div>
+    <div class="bar-row"><div class="bar-label">Logistic Regression</div><div class="bar-track"><div class="bar-fill" style="width:68%"></div></div><div class="bar-val">0.680</div></div>
+    <div class="bar-row"><div class="bar-label">Random Forest</div><div class="bar-track"><div class="bar-fill win" style="width:76%"></div></div><div class="bar-val">0.760</div></div>
+  </div>
+  <p style="font-family:var(--mono); font-size:12px; color:var(--ink-soft);">Precision@50 — of the top 50 pages ranked by each method, the fraction that actually declined in April.</p>
+
+  <figure>
+    <img src="figures/capstone_model_vs_baseline.png" alt="Bar chart comparing Precision@50 across base rate, baseline rule, logistic regression, and random forest">
+    <figcaption>Fig. 1 — Model vs. baseline, Precision@50 (exported from the capstone notebook)</figcaption>
+  </figure>
+
+  <p>Random Forest reaches 0.76 Precision@50 against a 0.452 base rate and a 0.26 rule baseline. This <strong>reverses</strong> an earlier internship finding (ML‑08), where Logistic Regression beat Random Forest 0.700 to 0.500 on the smaller starter dataset with the proxy label. <span class="tag directional">Directional</span> A plausible explanation: a larger dataset with a genuinely future-observed label rewards the non-linear feature interactions Random Forest can capture, more than the smaller current-window-labeled slice did — this is a hypothesis prompted by the data, not a proven cause.</p>
+
+  <p>The baseline rule scoring below the random base rate is not a one-off: it is the second time this exact pattern has appeared in this internship (also seen on the starter CSV in ML‑08/09). <span class="tag observed">Observed</span> A rule tuned by eyeballing a small hand-reviewed sample does not reliably generalize under honest, held-out evaluation.</p>
+
+  <h3>Feature importance</h3>
+  <figure>
+    <img src="figures/capstone_feature_importance.png" alt="Bar chart of Random Forest feature importances">
+    <figcaption>Fig. 2 — Random Forest feature importance</figcaption>
+  </figure>
+  <div class="callout risk">
+    <b>Read with caution, not celebration</b>
+    "Days with any tracked activity" dominates importance (0.57 — roughly 4.5× the next feature). It passes the strict leakage-timeline test since it's computed entirely before the label's window, but the label itself divides by a <em>fixed</em> calendar length (59 and 30 days) rather than actual observed days, creating a plausible mechanical relationship with this feature. Its dominance is a real limitation of the label design, not proof of an independent signal.
+  </div>
+</section>
+
+<section id="limits">
+  <div class="sec-num">06</div>
+  <h2>Limitations &amp; honest framing</h2>
+  <ol>
+    <li><strong>Rate-based label, fixed-day denominators.</strong> The mechanical relationship with "days with any activity" described above means the label's strength should be read cautiously. <span class="tag decision-support">Decision-support</span></li>
+    <li><strong>~43% of joined pages are excluded.</strong> Every result here applies only to pages with some pre-existing search visibility — not to brand-new or zero-visibility pages.</li>
+    <li><strong>The baseline scores below random — again.</strong> A repeated, genuine finding about the limits of eyeballed rules, not a fluke.</li>
+    <li><strong>The Random-Forest-over-Logistic-Regression result may not generalize</strong> beyond this dataset and label; it directly reverses an earlier internship finding on different data. <span class="tag directional">Directional</span></li>
+    <li><strong>Several potentially useful fields were not joined in</strong> — content metadata and client-level fields (word count, content type, age) live in separate tables not used in this pass.</li>
+    <li><strong>No true time-aware test yet.</strong> Everything above uses a single Feb–Mar → April cut; training on Feb–Apr and testing on an entirely unseen May would be a stronger honesty check.</li>
+  </ol>
+  <p>Per the claim ladder used throughout this internship: every claim above is observed, measured, and directional at most. <span class="tag not-claimed">Not claimed</span> This is cross-sectional, non-experimental data — refreshing a flagged page is not claimed to <em>cause</em> recovery, and nothing here reproduces or predicts a search engine's ranking algorithm.</p>
+  <div class="legend">
+    <span><span class="tag observed">Observed</span> <b>directly measured</b> in this data</span>
+    <span><span class="tag directional">Directional</span> <b>a pattern</b>, not a guarantee</span>
+    <span><span class="tag decision-support">Decision-support</span> <b>useful for triage</b>, not proof</span>
+    <span><span class="tag not-claimed">Not claimed</span> <b>explicitly out of scope</b></span>
+  </div>
+</section>
+
+<section id="recs">
+  <div class="sec-num">07</div>
+  <h2>Ranked recommendations</h2>
+  <p>Model scores feed a reason-coded action queue rather than an automated decision. On the held-out test set (44,238 pages):</p>
+  <table>
+    <tr><th>Action</th><th>Pages</th><th>Share</th></tr>
+    <tr><td>Monitor</td><td class="num">39,280</td><td class="num">88.8%</td></tr>
+    <tr><td>Rewrite title / meta</td><td class="num">3,391</td><td class="num">7.7%</td></tr>
+    <tr><td>Protect / monitor (strong performer)</td><td class="num">1,567</td><td class="num">3.5%</td></tr>
+    <tr><td>Review for refresh</td><td class="num">0</td><td class="num">0%</td></tr>
+  </table>
+  <div class="callout">
+    <b>Named, not hidden: refresh never fires</b>
+    The "review for refresh" reason code requires low tracked-day consistency, but in this warehouse near-continuous visibility (39–59 of 59 days) is the norm, not the exception — a threshold carried over from a different dataset's assumptions that didn't transfer. This is the same honest pattern found in an earlier weekly assignment on the starter data, now confirmed on the full warehouse too.
+  </div>
+  <p>A second honest limitation in the queue itself: confidence is labeled "low" for nearly every page — even ones with tens of thousands of impressions — because the confidence rule requires session data that most pages don't have (GA4 coverage is sparse across this warehouse). A stronger design would compute confidence from search-console volume alone when session data is absent.</p>
+  <p>Governance guardrails carried through from ML‑10: no auto-publishing, no client-facing claims, no evaluating writers — this queue is an input to human review, not a replacement for it.</p>
+</section>
+
+<section id="repro">
+  <div class="sec-num">08</div>
+  <h2>Reproducibility</h2>
+  <ul>
+    <li>Capstone notebook: <code>work/notebooks/capstone.ipynb</code></li>
+    <li>Full weekly assignment trail (ML‑02 → ML‑10): <code>work/notebooks/</code></li>
+    <li>Ranked queue, metrics snapshot, and both figures above: <code>work/outputs/</code> and <code>work/figures/</code></li>
+    <li>Repository: <a href="https://github.com/maryamsohail32/flyrank-ml-internship">github.com/maryamsohail32/flyrank-ml-internship</a></li>
+  </ul>
+</section>
+
+<section id="ack">
+  <div class="sec-num">09</div>
+  <h2>Acknowledgments &amp; data credit</h2>
+  <p>Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai">flyrank.ai</a>.</p>
+</section>
+
+<footer>
+  <p>Maryam Sohail Ahmed · FlyRank ML Internship, Cohort 1 · Lane 2 — Refresh / Content Opportunity Scoring</p>
+</footer>
+
+</div>
+</body>
+</html>
